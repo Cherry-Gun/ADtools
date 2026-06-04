@@ -2,16 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
 // 默认规则（当数据库为空时使用）
-const defaultRules = {
+const defaultRules: Record<string, any> = {
   haichen: {
     violations: [
       { keyword: '国家级', reason: '绝对化用语', suggestion: '删除或替换' },
       { keyword: '最', reason: '绝对化用语', suggestion: '删除或改为具体描述' },
-      // ... 更多规则
     ],
     throttling: [
       { keyword: '限时优惠', reason: '限流敏感词', suggestion: '改为"近期活动"' },
-      // ... 更多规则
     ],
     persona: [],
     suggestions: [
@@ -41,22 +39,22 @@ export async function POST(request: NextRequest) {
       .eq('project_id', project)
       .eq('is_active', true)
 
-    if (error) {
-      console.error('获取规则失败:', error)
+    let results: any
+
+    if (error || !rules || rules.length === 0) {
       // 使用默认规则
-      const projectRules = defaultRules[project as keyof typeof defaultRules] || defaultRules.haichen
-      return NextResponse.json(analyzeScript(script, projectRules))
+      const projectRules = defaultRules[project] || defaultRules.haichen
+      results = analyzeScript(script, projectRules)
+    } else {
+      // 按类型分组规则
+      const groupedRules = {
+        violations: rules.filter((r: any) => r.type === 'violation'),
+        throttling: rules.filter((r: any) => r.type === 'throttling'),
+        persona: rules.filter((r: any) => r.type === 'persona'),
+        suggestions: rules.filter((r: any) => r.type === 'suggestion'),
+      }
+      results = analyzeScript(script, groupedRules)
     }
-
-    // 按类型分组规则
-    const groupedRules = {
-      violations: rules.filter((r: any) => r.type === 'violation'),
-      throttling: rules.filter((r: any) => r.type === 'throttling'),
-      persona: rules.filter((r: any) => r.type === 'persona'),
-      suggestions: rules.filter((r: any) => r.type === 'suggestion'),
-    }
-
-    const results = analyzeScript(script, groupedRules)
 
     // 保存历史记录
     await supabase.from('history').insert({
@@ -79,10 +77,10 @@ function analyzeScript(script: string, rules: any) {
     throttling: [] as any[],
     persona: [] as any[],
     suggestions: [] as any[],
-    structure: {}
+    structure: {} as any
   }
 
-  lines.forEach((line, index) => {
+  lines.forEach((line: string, index: number) => {
     const lineNum = index + 1
 
     // 检查违规
@@ -108,10 +106,11 @@ function analyzeScript(script: string, rules: any) {
   })
 
   // 简化结构分析
+  const lastLine = lines.slice(-1)[0] || ''
   results.structure = {
-    opening: { detectedPersona: detectPersona(lines.slice(0, Math.ceil(lines.length * 0.2)) },
+    opening: { detectedPersona: detectPersona(lines.slice(0, Math.ceil(lines.length * 0.2))) },
     body: { matchesPersona: true },
-    closing: { hasGuidance: lines.slice(-1)[0]?.includes('直播间') || lines.slice(-1)[0]?.includes('点击') }
+    closing: { hasGuidance: lastLine.includes('直播间') || lastLine.includes('点击') }
   }
 
   return results
