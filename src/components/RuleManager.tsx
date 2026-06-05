@@ -69,7 +69,7 @@ export function RuleManager() {
       if (data.error) {
         setError(data.error)
       } else {
-        setRules(data)
+        setRules(data || [])
       }
     } catch (err) {
       setError('获取规则失败')
