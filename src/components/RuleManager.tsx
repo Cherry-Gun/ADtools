@@ -181,12 +181,6 @@ export function RuleManager() {
     setError('')
   }
 
-  const filteredRules = rules.filter((rule) => {
-    if (filterProject !== 'all' && rule.project_id !== filterProject) return false
-    if (filterType !== 'all' && rule.type !== filterType) return false
-    return true
-  })
-
   const getTypeLabel = (type: RuleType) => {
     return RULE_TYPES.find((t) => t.value === type)?.label || type
   }
@@ -212,6 +206,15 @@ export function RuleManager() {
       </div>
     )
   }
+
+  // 确保 rules 是数组
+  const safeRules = Array.isArray(rules) ? rules : []
+  
+  const filteredRules = safeRules.filter((rule) => {
+    if (filterProject !== 'all' && rule.project_id !== filterProject) return false
+    if (filterType !== 'all' && rule.type !== filterType) return false
+    return true
+  })
 
   return (
     <div className="space-y-6">
