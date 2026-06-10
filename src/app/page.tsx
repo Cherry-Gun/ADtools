@@ -186,7 +186,9 @@ export default function Home() {
         {/* Footer */}
         <div className="text-center mt-8 text-white/60 text-sm">
           <p>规则持续更新中 · 使用过程中如有疑问请联系王艺斌</p>
-          <p className="mt-1">版本号：{appVersion}</p>
+          <p className="mt-3 inline-flex items-center rounded-full bg-white/15 px-4 py-1.5 text-white/90 font-semibold">
+            版本号：{appVersion}
+          </p>
         </div>
       </div>
     </main>
