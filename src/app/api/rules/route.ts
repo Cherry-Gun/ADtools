@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { APP_VERSION_KEYWORD, bumpAppVersion } from '@/lib/version'
+
+async function bumpRulesVersion() {
+  try {
+    return { appVersion: await bumpAppVersion() }
+  } catch (error) {
+    console.error('更新版本号失败:', error)
+    return { versionWarning: '规则已保存，但版本号更新失败' }
+  }
+}
 
 // 获取所有规则
 export async function GET() {
@@ -7,6 +17,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from('rules')
     .select('*')
+    .neq('keyword', APP_VERSION_KEYWORD)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -43,7 +54,8 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-      return NextResponse.json(data)
+      const versionResult = await bumpRulesVersion()
+      return NextResponse.json({ ...data, ...versionResult })
     }
 
     if (action === 'update') {
@@ -55,7 +67,8 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-      return NextResponse.json(data)
+      const versionResult = await bumpRulesVersion()
+      return NextResponse.json({ ...data, ...versionResult })
     }
 
     if (action === 'delete') {
@@ -65,7 +78,8 @@ export async function POST(request: NextRequest) {
         .eq('id', rule.id)
 
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-      return NextResponse.json({ success: true })
+      const versionResult = await bumpRulesVersion()
+      return NextResponse.json({ success: true, ...versionResult })
     }
 
     return NextResponse.json({ error: '未知操作' }, { status: 400 })

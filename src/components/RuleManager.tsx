@@ -57,10 +57,37 @@ export function RuleManager() {
   const [filterProject, setFilterProject] = useState<string>('all')
   const [filterType, setFilterType] = useState<string>('all')
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [appVersion, setAppVersion] = useState('V1.0')
 
   useEffect(() => {
     fetchRules()
+    fetchVersion()
   }, [])
+
+  const fetchVersion = async () => {
+    try {
+      const res = await fetch('/api/version')
+      const data = await res.json()
+      if (data.version) {
+        setAppVersion(data.version)
+      }
+    } catch (err) {
+      console.error('获取版本号失败:', err)
+    }
+  }
+
+  const syncVersionFromResponse = async (data: any) => {
+    if (data.appVersion) {
+      setAppVersion(data.appVersion)
+      return
+    }
+
+    if (data.versionWarning) {
+      setError(data.versionWarning)
+    }
+
+    await fetchVersion()
+  }
 
   const fetchRules = async () => {
     try {
@@ -97,6 +124,7 @@ export function RuleManager() {
       if (data.error) {
         setError(data.error)
       } else {
+        await syncVersionFromResponse(data)
         await fetchRules()
         setShowForm(false)
         setEditingRule(null)
@@ -139,6 +167,7 @@ export function RuleManager() {
       if (data.error) {
         setError(data.error)
       } else {
+        await syncVersionFromResponse(data)
         await fetchRules()
       }
     } catch (err) {
@@ -161,6 +190,7 @@ export function RuleManager() {
 
       const data = await res.json()
       if (!data.error) {
+        await syncVersionFromResponse(data)
         await fetchRules()
       }
     } catch (err) {
@@ -226,7 +256,7 @@ export function RuleManager() {
 
       <div className="glass rounded-2xl p-6">
         <div className="flex flex-wrap gap-4 items-center justify-between mb-6">
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-4 items-center">
             <select
               value={filterProject}
               onChange={(e) => setFilterProject(e.target.value)}
@@ -252,6 +282,10 @@ export function RuleManager() {
                 </option>
               ))}
             </select>
+
+            <span className="px-3 py-2 rounded-lg bg-white/70 text-sm text-gray-600 border border-gray-100">
+              当前版本：{appVersion}
+            </span>
           </div>
 
           <button

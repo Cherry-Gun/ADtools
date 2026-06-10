@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import ProjectSelector from '@/components/ProjectSelector'
 import ScriptInput from '@/components/ScriptInput'
 import ResultCard from '@/components/ResultCard'
@@ -18,6 +18,23 @@ export default function Home() {
   const [selectedProject, setSelectedProject] = useState<string | null>(null)
   const [results, setResults] = useState<AnalysisResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [appVersion, setAppVersion] = useState('V1.0')
+
+  useEffect(() => {
+    const fetchVersion = async () => {
+      try {
+        const response = await fetch('/api/version')
+        const data = await response.json()
+        if (data.version) {
+          setAppVersion(data.version)
+        }
+      } catch (error) {
+        console.error('获取版本号失败:', error)
+      }
+    }
+
+    fetchVersion()
+  }, [])
 
   const analyzeScript = async (script: string) => {
     if (!selectedProject) {
@@ -169,6 +186,7 @@ export default function Home() {
         {/* Footer */}
         <div className="text-center mt-8 text-white/60 text-sm">
           <p>规则持续更新中 · 使用过程中如有疑问请联系王艺斌</p>
+          <p className="mt-1">版本号：{appVersion}</p>
         </div>
       </div>
     </main>
