@@ -1,28 +1,27 @@
-import { createClient } from '@supabase/supabase-js'
+const { createClient } = require('@supabase/supabase-js');
 
-// Replace these with your actual Supabase URL and Anon Key
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'YOUR_SUPABASE_URL'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY'
+const supabaseUrl = 'https://ucpsztaufynmbqtvwqxa.supabase.co';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY; // I will pass this in
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+if (!supabaseAnonKey) {
+  console.error("Please provide SUPABASE_ANON_KEY");
+  process.exit(1);
+}
 
-async function testSupabase() {
-  console.log('Testing Supabase Connection...')
-  
-  const { data, error } = await supabase
-    .from('rules')
-    .select('*')
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+async function test() {
+  console.log("Testing Supabase connection...");
+  const { data, error } = await supabase.from('rules').select('*').limit(5);
   
   if (error) {
-    console.error('❌ Error fetching rules:', error)
+    console.error("Error:", error);
   } else {
-    console.log(`✅ Successfully fetched ${data.length} rules!`)
+    console.log(`Success! Fetched ${data.length} rows.`);
     if (data.length > 0) {
-      console.log('Sample rule:', data[0])
-    } else {
-      console.log('⚠️ The rules array is empty. This could be due to RLS policies!')
+      console.log(data[0]);
     }
   }
 }
 
-testSupabase()
+test();

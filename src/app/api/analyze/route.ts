@@ -32,11 +32,19 @@ export async function POST(request: NextRequest) {
   try {
     const { script, project } = await request.json()
 
-    // 从数据库获取规则
+    // 从数据库获取规则，注意这里使用连表查询或者手动匹配项目代码
+    const { data: projectsData } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('code', project)
+      .single()
+
+    const projectId = projectsData?.id
+
     const { data: rules, error } = await supabase
       .from('rules')
       .select('*')
-      .eq('project_id', project)
+      .eq('project_id', projectId)
       .eq('is_active', true)
 
     let results: any
