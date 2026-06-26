@@ -14,6 +14,7 @@ interface Rule {
   is_active: boolean
   created_at?: string
   updated_at?: string
+  is_fallback?: boolean
 }
 
 interface RuleFormData {
@@ -58,6 +59,7 @@ export function RuleManager() {
   const [filterType, setFilterType] = useState<string>('all')
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [appVersion, setAppVersion] = useState('V1.0')
+  const [isReadOnly, setIsReadOnly] = useState(false)
 
   useEffect(() => {
     fetchRules()
@@ -93,10 +95,20 @@ export function RuleManager() {
     try {
       const res = await fetch('/api/rules')
       const data = await res.json()
-      if (data.error) {
+
+      if (Array.isArray(data)) {
+        setRules(data)
+        setIsReadOnly(false)
+      } else if (data.rules) {
+        setRules(data.rules || [])
+        setIsReadOnly(data.source === 'fallback')
+        if (data.warning) {
+          setError(data.warning)
+        }
+      } else if (data.error) {
         setError(data.error)
       } else {
-        setRules(data || [])
+        setRules([])
       }
     } catch (err) {
       setError('获取规则失败')
@@ -290,11 +302,18 @@ export function RuleManager() {
 
           <button
             onClick={openAddForm}
-            className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-indigo-700 transition-all"
+            disabled={isReadOnly}
+            className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-indigo-700 transition-all disabled:cursor-not-allowed disabled:opacity-50"
           >
             添加规则
           </button>
         </div>
+
+        {isReadOnly && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+            当前数据库连接不可用，页面正在显示内置备用规则。规则修改、启用/禁用、删除功能已临时关闭。
+          </div>
+        )}
 
         {filteredRules.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
@@ -329,11 +348,12 @@ export function RuleManager() {
                     <td className="py-3 px-4">
                       <button
                         onClick={() => handleToggleActive(rule)}
+                        disabled={isReadOnly || rule.is_fallback}
                         className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
                           rule.is_active
                             ? 'bg-green-100 text-green-700 hover:bg-green-200'
                             : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                        }`}
+                        } disabled:cursor-not-allowed disabled:opacity-60`}
                       >
                         {rule.is_active ? '启用' : '禁用'}
                       </button>
@@ -342,7 +362,8 @@ export function RuleManager() {
                       <div className="flex gap-2 justify-end">
                         <button
                           onClick={() => handleEdit(rule)}
-                          className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                          disabled={isReadOnly || rule.is_fallback}
+                          className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all disabled:cursor-not-allowed disabled:opacity-40"
                           title="编辑"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -351,7 +372,7 @@ export function RuleManager() {
                         </button>
                         <button
                           onClick={() => rule.id && handleDelete(rule.id)}
-                          disabled={deletingId === rule.id}
+                          disabled={deletingId === rule.id || isReadOnly || rule.is_fallback}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
                           title="删除"
                         >
