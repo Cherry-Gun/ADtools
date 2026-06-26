@@ -101,7 +101,10 @@ export function RuleManager() {
         setIsReadOnly(false)
       } else if (data.rules) {
         setRules(data.rules || [])
-        setIsReadOnly(data.source === 'fallback')
+        setIsReadOnly(data.source === 'local')
+        if (data.version) {
+          setAppVersion(data.version)
+        }
         if (data.warning) {
           setError(data.warning)
         }
@@ -204,6 +207,8 @@ export function RuleManager() {
       if (!data.error) {
         await syncVersionFromResponse(data)
         await fetchRules()
+      } else {
+        setError(data.error)
       }
     } catch (err) {
       setError('切换状态失败')
@@ -311,7 +316,7 @@ export function RuleManager() {
 
         {isReadOnly && (
           <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-            当前数据库连接不可用，页面正在显示内置备用规则。规则修改、启用/禁用、删除功能已临时关闭。
+            当前无法连接 GitHub 规则文件，页面正在显示随代码发布的本地规则。规则修改、启用/禁用、删除功能已临时关闭。
           </div>
         )}
 

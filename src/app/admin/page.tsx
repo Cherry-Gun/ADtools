@@ -3,9 +3,6 @@
 import { useState, useEffect } from 'react'
 import { RuleManager } from '@/components/RuleManager'
 
-const ADMIN_PASSWORD = 'admin123'
-const AUTH_KEY = 'admin_authenticated'
-
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
@@ -13,26 +10,47 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const auth = localStorage.getItem(AUTH_KEY)
-    if (auth === 'true') {
-      setIsAuthenticated(true)
+    const checkSession = async () => {
+      try {
+        const response = await fetch('/api/admin/session')
+        const data = await response.json()
+        setIsAuthenticated(Boolean(data.authenticated))
+      } catch (err) {
+        setIsAuthenticated(false)
+      } finally {
+        setLoading(false)
+      }
     }
-    setLoading(false)
+
+    checkSession()
   }, [])
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (password === ADMIN_PASSWORD) {
-      localStorage.setItem(AUTH_KEY, 'true')
+
+    try {
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || '登录失败，请重试')
+        return
+      }
+
       setIsAuthenticated(true)
-    } else {
-      setError('密码错误，请重试')
+      setPassword('')
+    } catch (err) {
+      setError('登录失败，请重试')
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem(AUTH_KEY)
+  const handleLogout = async () => {
+    await fetch('/api/admin/logout', { method: 'POST' })
     setIsAuthenticated(false)
     setPassword('')
   }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { getRulesDocument } from '@/lib/rulesStore'
 
 // 默认规则（当数据库为空时使用）
 const defaultRules: Record<string, any> = {
@@ -32,24 +32,14 @@ export async function POST(request: NextRequest) {
   try {
     const { script, project } = await request.json()
 
-    // 从数据库获取规则，注意这里使用连表查询或者手动匹配项目代码
-    const { data: projectsData } = await supabase
-      .from('projects')
-      .select('id')
-      .eq('code', project)
-      .single()
-
-    const projectId = projectsData?.id
-
-    const { data: rules, error } = await supabase
-      .from('rules')
-      .select('*')
-      .eq('project_id', projectId)
-      .eq('is_active', true)
-
     let results: any
 
-    if (error || !rules || rules.length === 0) {
+    const { document } = await getRulesDocument()
+    const rules = document.rules.filter((rule) => (
+      rule.project_id === project && rule.is_active
+    ))
+
+    if (!rules || rules.length === 0) {
       // 使用默认规则
       const projectRules = defaultRules[project] || defaultRules.haichen
       results = analyzeScript(script, projectRules)
@@ -63,13 +53,6 @@ export async function POST(request: NextRequest) {
       }
       results = analyzeScript(script, groupedRules)
     }
-
-    // 保存历史记录
-    await supabase.from('history').insert({
-      project_id: project,
-      script_content: script,
-      result: results
-    })
 
     return NextResponse.json(results)
   } catch (error) {
